@@ -97,6 +97,15 @@ public class BlocController {
         return ResponseEntity.ok(blocService.getBlockchain());
     }
 
+    /**
+     * DELETE /api/bloc/blockchain — Vider totalement la blockchain (reset)
+     */
+    @DeleteMapping("/blockchain")
+    public ResponseEntity<?> resetBlockchain() {
+        blocService.resetBlockchain();
+        return ResponseEntity.ok(Map.of("message", "Blockchain réinitialisée avec succès"));
+    }
+
     @GetMapping("/3")
     public void afficher3() {
         blocService.test3();

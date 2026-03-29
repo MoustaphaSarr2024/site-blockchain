@@ -1,8 +1,18 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import DashboardPage    from "./pages/DashboardPage";
+import BasicsPage       from "./pages/BasicsPage";
+import AccountsPage     from "./pages/AccountsPage";
+import MempoolPage     from "./pages/MempoolPage";         // Mempool Phase 2
+import MiningPage       from "./pages/MiningPage";
 import BlockchainExplorer from "./pages/BlockchainExplorer";
-import WalletPage from "./pages/WalletPage";
+import WalletPage       from "./pages/WalletPage";        // kept as /wallet fallback
+
+// Phase 3 & 4 — placeholder pages until implemented
+import BalancesPage     from "./pages/BalancesPage";
+import ConsensusPage    from "./pages/ConsensusPage";
+import InternalsPage    from "./pages/InternalsPage";
 
 const App = () => {
   return (
@@ -16,14 +26,21 @@ const App = () => {
           background: "var(--bg-primary)",
         }}
       >
-        {/* Sidebar Navigation */}
         <Navbar />
-
-        {/* Main Content */}
         <div style={{ flex: 1, overflow: "hidden" }}>
           <Routes>
-            <Route path="/" element={<BlockchainExplorer />} />
-            <Route path="/wallet" element={<WalletPage />} />
+            {/* Default redirect to dashboard */}
+            <Route path="/"          element={<BlockchainExplorer />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/basics"    element={<BasicsPage />} />
+            <Route path="/accounts"  element={<AccountsPage />} />
+            <Route path="/mempool"   element={<MempoolPage />} />
+            <Route path="/mining"    element={<MiningPage />} />
+            <Route path="/balances"  element={<BalancesPage />} />
+            <Route path="/consensus" element={<ConsensusPage />} />
+            <Route path="/internals" element={<InternalsPage />} />
+            {/* Legacy routes */}
+            <Route path="/wallet"    element={<WalletPage />} />
           </Routes>
         </div>
       </div>

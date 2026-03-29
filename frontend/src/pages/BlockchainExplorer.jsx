@@ -46,7 +46,6 @@ const BlockchainExplorer = () => {
 
   const [mempool, setMempool] = useState([]);
   const [wallets, setWallets] = useState([]);
-  const [minerAddress, setMinerAddress] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTx, setSelectedTx] = useState(null);
@@ -59,45 +58,7 @@ const BlockchainExplorer = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // --- MINE BLOCK FROM JAVA BACKEND ---
-  const handleGenerateBlock = async () => {
-    setLoading(true);
-    try {
-      const response = await apiBloc.miner(minerAddress || null);
-      const data = response.data;
-      const javaBlock = data.bloc || data;
 
-      const newBlock = {
-        index: blocks.length,
-        hash: javaBlock.blockHeader?.hashPre || javaBlock.BlockHeader?.HashPre || "MINED_HASH",
-        prevHash: javaBlock.blockHeader?.hashPre || javaBlock.BlockHeader?.HashPre || "N/A",
-        merkleRoot: javaBlock.blockHeader?.merkleRoot || javaBlock.BlockHeader?.MerkleRoot || "N/A",
-        timestamp: javaBlock.blockHeader?.timeStamp || javaBlock.BlockHeader?.TimeStamp || new Date().toISOString(),
-        nonce: javaBlock.blockHeader?.nonce || javaBlock.BlockHeader?.Nonce || 0,
-        target: javaBlock.blockHeader?.target || javaBlock.BlockHeader?.Target || 3,
-        data: `${(javaBlock.blockBody?.transactionList || javaBlock.BlockBody?.TransactionList || []).length} Transactions`,
-        transactions: javaBlock.blockBody?.transactionList || javaBlock.BlockBody?.TransactionList || [],
-        coinbase: javaBlock.blockBody?.coinBaseTrans || javaBlock.BlockBody?.CoinBaseTrans || null,
-      };
-
-      const updatedBlocks = [...blocks, newBlock];
-      setBlocks(updatedBlocks);
-      setCurrentIndex(updatedBlocks.length - 1);
-
-      const reward = data.reward || 6.25;
-      const miner = minerAddress ? `Récompense → ${minerAddress.substring(0, 10)}...` : "";
-      showToast(`Block #${newBlock.index} miné ! +${reward} BTC ${miner}`);
-
-      // Refresh mempool and wallets
-      fetchMempool();
-      fetchWallets();
-    } catch (error) {
-      console.error("Erreur Backend:", error);
-      showToast(error.response?.data?.error || "Erreur de minage", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // --- FETCH MEMPOOL FROM BACKEND ---
   const fetchMempool = useCallback(async () => {
@@ -119,12 +80,51 @@ const BlockchainExplorer = () => {
     }
   }, []);
 
+  // --- FETCH BLOCKCHAIN FROM BACKEND ---
+  const fetchBlockchain = useCallback(async () => {
+    try {
+      const res = await apiBloc.getBlockchain();
+      if (res.data && res.data.length > 0) {
+        const parsedBlocks = res.data.map(javaBlock => ({
+          index: javaBlock.index ?? (javaBlock.blockHeader?.index || 0),
+          hash: javaBlock.hash || javaBlock.blockHeader?.hashPre || "HASH",
+          prevHash: javaBlock.prevHash || javaBlock.blockHeader?.hashPre || "GENESIS_ROOT",
+          merkleRoot: javaBlock.merkleRoot || javaBlock.blockHeader?.merkleRoot || "N/A",
+          timestamp: javaBlock.timestamp || javaBlock.blockHeader?.timeStamp || new Date().toISOString(),
+          nonce: javaBlock.nonce || javaBlock.blockHeader?.nonce || 0,
+          target: javaBlock.target || javaBlock.blockHeader?.target || 4,
+          data: `${(javaBlock.transactions || javaBlock.blockBody?.transactionList || []).length} Transactions`,
+          transactions: javaBlock.transactions || javaBlock.blockBody?.transactionList || [],
+          coinbase: javaBlock.coinbase || javaBlock.blockBody?.coinBaseTrans || null,
+        }));
+        
+        // Only update state if the chain has grown/changed to prevent reset of carousel index
+        setBlocks(prev => {
+          if (parsedBlocks.length > prev.length) {
+            // Auto-scroll to latest block if we were at the end
+            if (currentIndex === prev.length - 1 || prev.length === 1) {
+               setCurrentIndex(parsedBlocks.length - 1);
+            }
+            return parsedBlocks;
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error("Fetch blockchain error:", err);
+    }
+  }, [currentIndex]);
+
   useEffect(() => {
+    fetchBlockchain();
     fetchMempool();
     fetchWallets();
-    const interval = setInterval(fetchMempool, 5000);
+    const interval = setInterval(() => {
+      fetchBlockchain();
+      fetchMempool();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [fetchMempool, fetchWallets]);
+  }, [fetchBlockchain, fetchMempool, fetchWallets]);
 
   // --- DELETE FROM MEMPOOL ---
   const handleDeleteFromMempool = async (index) => {
@@ -495,44 +495,6 @@ const BlockchainExplorer = () => {
               Find
             </button>
           </form>
-
-          {/* Miner Wallet Selector */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "1rem",
-              maxWidth: "480px",
-              margin: "0 auto 1rem auto",
-            }}
-          >
-            <Wallet size={16} style={{ color: "var(--accent-green)", flexShrink: 0 }} />
-            <select
-              className="input-field"
-              value={minerAddress}
-              onChange={(e) => setMinerAddress(e.target.value)}
-              style={{ cursor: "pointer", flex: 1, fontSize: "0.75rem" }}
-            >
-              <option value="">Mineur : aucun wallet (pas de récompense)</option>
-              {wallets.map((w) => (
-                <option key={w.address} value={w.address}>
-                  ⛏️ {w.label} — {(w.balance || 0).toFixed(4)} BTC
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Mine Button */}
-          <button
-            onClick={handleGenerateBlock}
-            disabled={loading}
-            className="btn-success"
-            style={{ margin: "0 auto" }}
-          >
-            <Pickaxe size={18} className={loading ? "animate-spin" : ""} />
-            {loading ? "Minage en cours..." : "Miner un Bloc"}
-          </button>
         </div>
 
         {/* ========== BLOCK CAROUSEL ========== */}

@@ -61,6 +61,8 @@ public class BlocService {
         Header headertest = genererHeaderTest();
         Body bodyTest = genererBodyTest();
         Bloc bloc = new Bloc(headertest, bodyTest);
+        bloc.setHash(hasherHeader(headertest));
+        bloc.setIndex(blockchain.size());
         return bloc;
     }
 
@@ -179,6 +181,10 @@ public class BlocService {
             }
         }
 
+        // Ajouter le hash et l'index avant la sauvegarde
+        bloc.setHash(hasherHeader(bloc.getBlockHeader()));
+        bloc.setIndex(blockchain.size());
+
         // Ajouter le bloc à la blockchain
         blockchain.add(bloc);
 
@@ -207,6 +213,14 @@ public class BlocService {
      */
     public List<Bloc> getBlockchain() {
         return new ArrayList<>(blockchain);
+    }
+
+    /**
+     * Vider la blockchain (reset)
+     */
+    public void resetBlockchain() {
+        blockchain.clear();
+        mempool.clear(); // Reset mempool as well for a clean state
     }
 
     // ==================== AFFICHAGE ====================

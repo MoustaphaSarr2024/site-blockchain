@@ -16,6 +16,7 @@ export const apiBloc = {
   minerRapide: () => api.get("/bloc/miner"),
   // Blockchain complète
   getBlockchain: () => api.get("/bloc/blockchain"),
+  resetBlockchain: () => api.delete("/bloc/blockchain"),
   // Mempool
   getMempool: () => api.get("/bloc/mempool"),
   deleteFromMempool: (index) => api.delete(`/bloc/mempool/${index}`),
@@ -50,6 +51,11 @@ export const apiWallet = {
   // Envoyer des fonds (ajoute au mempool)
   send: (address, destinataire, montant, fees = 0) =>
     api.post(`/wallet/${address}/send`, { destinataire, montant, fees }),
+};
+// ==================== AUTH API ====================
+export const apiAuth = {
+  login: (email, password) => api.post("/auth/login", { email, password }),
+  register: (email, password) => api.post("/auth/register", { email, password }),
 };
 
 export default api;
