@@ -21,20 +21,21 @@ function computeBalances(blocks) {
     // Coinbase
     const cb = body.coinBaseTrans || body.CoinBaseTrans || body.coinbase || block.coinbase;
     if (cb) {
-      const dest = cb.destinataire || cb.recipient || cb.to || cb.miner;
+      const reward = parseFloat(cb.Recompense ?? cb.recompense ?? cb.reward ?? 6.25);
+      const dest = cb.MinerAddress || cb.minerAddress || cb.destinataire || cb.recipient || cb.to || cb.miner;
       if (dest) {
         ensure(dest);
-        balances[dest] += COINBASE_REWARD;
+        balances[dest] += reward;
       }
     }
 
     // Regular transactions
     const txs = body.transactionList || body.TransactionList || body.transactions || block.transactions || [];
     for (const tx of txs) {
-      const sender    = tx.expediteur  || tx.sender || tx.from;
-      const recipient = tx.destinataire || tx.recipient || tx.to;
-      const amount    = parseFloat(tx.amount ?? tx.montant ?? 0);
-      const fees      = parseFloat(tx.fees  ?? tx.frais  ?? 0);
+      const sender    = tx.Expediteur  || tx.expediteur  || tx.sender || tx.from;
+      const recipient = tx.Destinataire || tx.destinataire || tx.recipient || tx.to;
+      const amount    = parseFloat(tx.Quantite ?? tx.quantite ?? tx.amount ?? tx.montant ?? 0);
+      const fees      = parseFloat(tx.Fees    ?? tx.fees    ?? tx.frais  ?? 0);
 
       if (sender) { ensure(sender); balances[sender] -= (amount + fees); }
       if (recipient) { ensure(recipient); balances[recipient] += amount; }
