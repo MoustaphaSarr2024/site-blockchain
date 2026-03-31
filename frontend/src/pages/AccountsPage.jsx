@@ -248,7 +248,7 @@ export default function AccountsPage() {
                 <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 0.5rem" }}>
                   <thead>
                     <tr>
-                      {["Nom", "Adresse (Clé Publique tronquée)", "Clé Publique", "Balance", "Actions"].map(h => (
+                      {["Nom", "Adresse", "Clé Publique", "Clé Privée", "Balance", "Actions"].map(h => (
                         <th key={h} style={{ textAlign: "left", padding: "0.5rem 1rem", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>{h}</th>
                       ))}
                     </tr>
@@ -291,6 +291,33 @@ export default function AccountsPage() {
                               </button>
                             </div>
                           </td>
+                          {/* Clé Privée */}
+                          <td style={{ padding: "0.85rem 1rem", background: "var(--bg-card)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                              <button
+                                onClick={e => { e.stopPropagation(); setShowPrivKey(prev => ({ ...prev, [acct.address]: !prev[acct.address] })); }}
+                                style={{ background: "none", border: "none", color: showPrivKey[acct.address] ? "var(--accent-yellow)" : "var(--text-muted)", cursor: "pointer", padding: 0, flexShrink: 0 }}
+                                title={showPrivKey[acct.address] ? "Masquer la clé privée" : "Révéler la clé privée"}
+                              >
+                                {showPrivKey[acct.address] ? <Eye size={12} /> : <EyeOff size={12} />}
+                              </button>
+                              {showPrivKey[acct.address] ? (
+                                <>
+                                  <span className="mono" style={{ fontSize: "0.58rem", color: "var(--accent-yellow)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {acct.privateKey || "—"}
+                                  </span>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); copyToClipboard(acct.privateKey || "", `priv-${acct.address}`); }}
+                                    style={{ background: "none", border: "none", color: copied === `priv-${acct.address}` ? "var(--accent-green)" : "var(--text-muted)", cursor: "pointer", padding: 0 }}
+                                  >
+                                    {copied === `priv-${acct.address}` ? <Check size={11} /> : <Copy size={11} />}
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", letterSpacing: "0.1em" }}>••••••••</span>
+                              )}
+                            </div>
+                          </td>
                           {/* Balance */}
                           <td style={{ padding: "0.85rem 1rem", background: "var(--bg-card)" }}>
                             <span style={{ fontWeight: 800, color: "var(--accent-green)", fontSize: "0.95rem" }}>
@@ -331,11 +358,12 @@ export default function AccountsPage() {
                                   exit={{ opacity: 0, height: 0 }}
                                   style={{ overflow: "hidden" }}
                                 >
-                                  <div style={{ padding: "1rem", background: "rgba(10,14,26,0.5)", borderRadius: "var(--radius-sm)", border: "1px solid var(--glass-border)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                                  <div style={{ padding: "1rem", background: "rgba(10,14,26,0.5)", borderRadius: "var(--radius-sm)", border: "1px solid var(--glass-border)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
                                     {[
                                       { label: "Adresse complète", value: acct.address, key: `full-addr-${acct.address}` },
                                       { label: "Clé publique complète", value: acct.publicKey, key: `full-pk-${acct.address}` },
-                                    ].map(({ label, value, key }) => (
+                                      { label: "🔑 Clé privée complète", value: acct.privateKey, key: `full-priv-${acct.address}`, sensitive: true },
+                                    ].map(({ label, value, key, sensitive }) => (
                                       <div key={key}>
                                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
                                           <span className="input-label">{label}</span>
@@ -343,7 +371,7 @@ export default function AccountsPage() {
                                             {copied === key ? <Check size={11} /> : <Copy size={11} />}
                                           </button>
                                         </div>
-                                        <div className="mono" style={{ fontSize: "0.6rem", wordBreak: "break-all", color: "var(--text-secondary)", background: "rgba(0,0,0,0.2)", padding: "0.6rem", borderRadius: "var(--radius-sm)" }}>
+                                        <div className="mono" style={{ fontSize: "0.6rem", wordBreak: "break-all", color: sensitive ? "var(--accent-yellow)" : "var(--text-secondary)", background: sensitive ? "rgba(245,158,11,0.05)" : "rgba(0,0,0,0.2)", padding: "0.6rem", borderRadius: "var(--radius-sm)", border: sensitive ? "1px solid rgba(245,158,11,0.2)" : "none" }}>
                                           {value || "—"}
                                         </div>
                                       </div>
