@@ -16,6 +16,8 @@ const PHASES = [
   { key: "balances",    label: "Balances",         desc: "Soldes recalculés",          path: "/balances",    color: "#a855f7" },
   { key: "consensus",  label: "Consensus",        desc: "Validation réseau",          path: "/consensus",   color: "#f97316" },
   { key: "internals",  label: "Chain Internals",  desc: "Données brutes",             path: "/internals",   color: "#64748b" },
+  { key: "wallet",     label: "Wallet User",           desc: "Affichage complète du wallet d'un utilisateur",           path: "/walletuser",      color: "#6366f1" },
+  { key: "merkle",     label: "Merkle Tree",      desc: "Arbre de Merkle",            path: "/merkletree",  color: "#6366f1" },
 ];
 
 export default function DashboardPage() {
@@ -57,28 +59,46 @@ export default function DashboardPage() {
         const lastBloc = blockchain[blockCount - 1];
         const hdr = lastBloc.blockHeader || lastBloc.BlockHeader || lastBloc.header || {};
         const target = hdr.Target ?? hdr.target ?? hdr.difficulty ?? null;
-        if (target !== null) difficulty = `${target} zéro${target > 1 ? "s" : ""}`;
+        if (target !== null) difficulty = target.toString();
       }
 
       // ── Temps moyen de création des blocs ─────────────
       let avgTime = "—";
       if (blockCount >= 2) {
+        // Tente de récupérer un timestamp précis via la première Tx, sinon le Header (qui n'a qu'un LocalDate)
         const timestamps = blockchain.map(b => {
-          const hdr = b.blockHeader || b.BlockHeader || b.header || {};
-          const ts  = hdr.TimeStamp || hdr.timeStamp || hdr.timestamp || null;
-          return ts ? new Date(ts).getTime() : null;
+          let tsStr = null;
+          const body = b.blockBody || b.BlockBody || b.body || {};
+          if (body.transactionList && body.transactionList.length > 0) {
+             const firstTx = body.transactionList[0];
+             tsStr = firstTx.timestamp || firstTx.TimeStamp || firstTx.date;
+          }
+          if (!tsStr) {
+             const hdr = b.blockHeader || b.BlockHeader || b.header || {};
+             tsStr  = hdr.TimeStamp || hdr.timeStamp || hdr.timestamp || null;
+          }
+          return tsStr ? new Date(tsStr).getTime() : null;
         }).filter(Boolean);
 
-        if (timestamps.length >= 2) {
-          let totalMs = 0;
-          for (let i = 1; i < timestamps.length; i++) {
-            totalMs += Math.abs(timestamps[i] - timestamps[i - 1]);
+        // Filter out same-time timestamps if they purely fall on LocalDate bounds (happens if no TX timestamps)
+        let totalMs = 0;
+        let validIntervals = 0;
+        for (let i = 1; i < timestamps.length; i++) {
+          const diff = Math.abs(timestamps[i] - timestamps[i - 1]);
+          if (diff > 0) {
+            totalMs += diff;
+            validIntervals++;
           }
-          const avgMs  = totalMs / (timestamps.length - 1);
+        }
+        
+        if (validIntervals > 0) {
+          const avgMs  = totalMs / validIntervals;
           const avgSec = avgMs / 1000;
-          if (avgSec < 60)        avgTime = `${avgSec.toFixed(0)}s`;
+          if (avgSec < 60)        avgTime = `${avgSec.toFixed(1)} s`;
           else if (avgSec < 3600) avgTime = `${(avgSec / 60).toFixed(1)} min`;
           else                    avgTime = `${(avgSec / 3600).toFixed(1)} h`;
+        } else {
+          avgTime = "< 1 s";
         }
       } else if (blockCount === 1) {
         avgTime = "1 bloc";
@@ -88,12 +108,13 @@ export default function DashboardPage() {
       let totalSupply = 0;
       blockchain.forEach(b => {
         const body     = b.blockBody || b.BlockBody || b.body || {};
-        const coinbase = body.CoinBase || body.coinBase || body.coinbase || null;
+        const coinbase = body.coinBaseTrans || body.CoinBaseTrans || body.coinBase || body.CoinBase || body.coinbase || null;
         if (coinbase) {
-          const reward = coinbase.Recompense ?? coinbase.recompense ?? 0;
+          const reward = coinbase.Recompense ?? coinbase.recompense ?? coinbase.reward ?? 0;
           totalSupply += reward;
         }
       });
+
 
       setStats({
         blockCount,
@@ -227,7 +248,7 @@ export default function DashboardPage() {
       {/* ── Header row ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h2 style={{ fontWeight: 800, color: "var(--text-secondary)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-          📊 Indicateurs blockchain
+          Indicateurs blockchain
         </h2>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           {lastUpdate && (
@@ -289,7 +310,7 @@ export default function DashboardPage() {
 
       {/* ── Navigation cards ── */}
       <h2 style={{ fontWeight: 800, color: "var(--text-secondary)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "1rem" }}>
-        Sections de l'Application
+        Fonctionnalités de l'Application
       </h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
         {PHASES.map(({ label, desc, path, color }, i) => (
@@ -326,43 +347,6 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         ))}
-      </div>
-
-      {/* ── What is a blockchain ── */}
-      <div className="glass-card" style={{ padding: "1.75rem", borderColor: "rgba(99,102,241,0.2)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
-          <Layers size={20} style={{ color: "var(--accent-blue-light)" }} />
-          <h2 style={{ fontWeight: 800, color: "var(--text-primary)", fontSize: "1rem" }}>
-            Comment fonctionne cette simulation ?
-          </h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem" }}>
-          {[
-            { step: "1", title: "Créer des comptes", desc: "Chaque compte génère une paire de clés ECDSA (privée/publique). La clé publique identifie l'utilisateur sur la blockchain.", color: "#6366f1" },
-            { step: "2", title: "Créer des transactions", desc: "Signer une transaction avec votre clé privée. La transaction est ajoutée au Mempool et attend d'être incluse dans un bloc.", color: "#22d3ee" },
-            { step: "3", title: "Miner un bloc", desc: "Le mineur choisit les transactions du mempool, calcule le Merkle Root et trouve un nonce satisfaisant la difficulté PoW.", color: "#10b981" },
-            { step: "4", title: "Consensus", desc: "10 nœuds réseau vérifient la validité du bloc (hash, signatures, soldes). Le bloc est ajouté si la majorité l'accepte.", color: "#f97316" },
-            { step: "5", title: "Explorer la chaîne", desc: "Visualisez tous les blocs chaînés. Chaque bloc contient le hash du précédent, formant une chaîne immuable.", color: "#818cf8" },
-            { step: "6", title: "Calculer les soldes", desc: "Les soldes sont recalculés depuis le début de la chaîne : coinbase + transactions reçues - transactions envoyées.", color: "#a855f7" },
-          ].map(({ step, title, desc, color }) => (
-            <div key={step} style={{ display: "flex", gap: "0.85rem" }}>
-              <div
-                style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: `${color}22`, border: `1px solid ${color}55`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color, fontWeight: 800, fontSize: "0.75rem", flexShrink: 0,
-                }}
-              >
-                {step}
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "0.82rem", marginBottom: "0.3rem" }}>{title}</div>
-                <div style={{ fontSize: "0.73rem", color: "var(--text-muted)", lineHeight: 1.6 }}>{desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

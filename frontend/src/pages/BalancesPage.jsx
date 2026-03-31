@@ -142,16 +142,6 @@ export default function BalancesPage() {
         ))}
       </div>
 
-      {/* How it's computed */}
-      <div className="glass-card" style={{ padding: "1rem 1.25rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "1.25rem", borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
-        <AlertTriangle size={15} style={{ color: "var(--accent-yellow)", flexShrink: 0 }} />
-        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-          <strong style={{ color: "var(--text-primary)" }}>Calcul des soldes :</strong>{" "}
-          coinbase → <span style={{ color: "#f59e0b" }}>+{COINBASE_REWARD} BTC</span> au mineur &nbsp;|&nbsp;
-          expéditeur → <span style={{ color: "var(--accent-red)" }}>-(montant + frais)</span> &nbsp;|&nbsp;
-          destinataire → <span style={{ color: "var(--accent-green)" }}>+montant</span>
-        </div>
-      </div>
 
       {/* Search */}
       <div style={{ position: "relative", marginBottom: "1.25rem" }}>

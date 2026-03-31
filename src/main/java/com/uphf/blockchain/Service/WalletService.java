@@ -120,7 +120,7 @@ public class WalletService {
 
         // Ajouter directement au mempool puis miner immédiatement
         blocService.ajouterAuMempool(faucetTx);
-        blocService.minerBloc(null); // Pas de mineur spécifique pour le faucet
+        blocService.minerBloc(null, 3); // Pas de mineur spécifique pour le faucet
 
         Double newBalance = calculerBalance(address);
         return WalletDTO.fromWallet(wallet, newBalance);

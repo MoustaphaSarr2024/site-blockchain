@@ -11,7 +11,7 @@ const api = axios.create({
 export const apiBloc = {
   generer: () => api.get("/bloc/generer"),
   // Minage avec adresse du mineur (POST)
-  miner: (minerAddress) => api.post("/bloc/miner", { minerAddress }),
+  miner: (minerAddress, target) => api.post("/bloc/miner", { minerAddress, target }),
   // Minage rapide sans wallet (GET)
   minerRapide: () => api.get("/bloc/miner"),
   // Blockchain complète

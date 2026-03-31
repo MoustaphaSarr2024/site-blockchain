@@ -214,7 +214,8 @@ export default function ConsensusPage() {
     setSubmitting(true);
     try {
       const minerAddr = block.minerAddr || block.miner || null;
-      await apiBloc.miner(minerAddr);
+      const target = block.difficulty || 4;
+      await apiBloc.miner(minerAddr, target);
       showToast("✅ Bloc officiellement ajouté à la blockchain (backend) !");
       // Remove this block from the pending list
       const updated = pendingBlocks.filter(b => b.id !== block.id);

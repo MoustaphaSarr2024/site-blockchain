@@ -127,7 +127,7 @@ public class BlocService {
      *                     test)
      * @return le bloc miné
      */
-    public Bloc minerBloc(String minerAddress) {
+    public Bloc minerBloc(String minerAddress, int target) {
         List<Transaction> transactionsAMiner;
         boolean fromMempool = !mempool.isEmpty();
 
@@ -169,7 +169,7 @@ public class BlocService {
 
         String merkleRoot = trouverMerkle(transactionsAMiner, 0, transactionsAMiner.size() - 1);
 
-        Header header = new Header(previousHash, LocalDate.now(), merkleRoot, 3, 0);
+        Header header = new Header(previousHash, LocalDate.now(), merkleRoot, target, 0);
 
         // Assembler le bloc
         Bloc bloc = new Bloc(header, body);

@@ -28,13 +28,29 @@ public class BlocController {
      * Body optionnel : { "minerAddress": "adresse_du_wallet_mineur" }
      */
     @PostMapping("/miner")
-    public ResponseEntity<?> minerBloc(@RequestBody(required = false) Map<String, String> body) {
+    public ResponseEntity<?> minerBloc(@RequestBody(required = false) Map<String, Object> body) {
         try {
             String minerAddress = null;
-            if (body != null && body.containsKey("minerAddress")) {
-                minerAddress = body.get("minerAddress");
+            int target = 3;
+            if (body != null) {
+                if (body.containsKey("minerAddress") && body.get("minerAddress") != null) {
+                    minerAddress = body.get("minerAddress").toString();
+                }
+                if (body.containsKey("target") && body.get("target") != null) {
+                    if (body.get("target") instanceof Number) {
+                        target = ((Number) body.get("target")).intValue();
+                    } else {
+                        target = Integer.parseInt(body.get("target").toString());
+                    }
+                } else if (body.containsKey("difficulty") && body.get("difficulty") != null) {
+                    if (body.get("difficulty") instanceof Number) {
+                        target = ((Number) body.get("difficulty")).intValue();
+                    } else {
+                        target = Integer.parseInt(body.get("difficulty").toString());
+                    }
+                }
             }
-            Bloc bloc = blocService.minerBloc(minerAddress);
+            Bloc bloc = blocService.minerBloc(minerAddress, target);
             return ResponseEntity.ok(Map.of(
                     "message", "Bloc miné avec succès !",
                     "bloc", bloc,
@@ -50,7 +66,7 @@ public class BlocController {
      */
     @GetMapping("/miner")
     public Bloc minerBlocGet() {
-        return blocService.minerBloc(null);
+        return blocService.minerBloc(null, 3);
     }
 
     // ==================== MEMPOOL ====================

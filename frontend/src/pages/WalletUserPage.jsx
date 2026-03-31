@@ -108,7 +108,7 @@ export default function WalletUserPage() {
           <div>
             <h1 className="page-title">Wallets Utilisateurs</h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-              Solde recalculé depuis la blockchain · Transactions envoyées et reçues
+              Solde, transactions envoyées et reçues
             </p>
           </div>
         </div>
