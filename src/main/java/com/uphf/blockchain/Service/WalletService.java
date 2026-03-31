@@ -247,6 +247,20 @@ public class WalletService {
             throw new RuntimeException("Wallet expéditeur introuvable: " + fromAddress);
         }
 
+        // ── Validation : transaction mal formée ──
+        if (toAddress == null || toAddress.isBlank()) {
+            throw new RuntimeException("Adresse destinataire invalide ou manquante.");
+        }
+        if (fromAddress.equals(toAddress)) {
+            throw new RuntimeException("L'expéditeur et le destinataire ne peuvent pas être identiques.");
+        }
+        if (montant == null || montant <= 0) {
+            throw new RuntimeException("Le montant doit être strictement positif (reçu : " + montant + ").");
+        }
+        if (fees == null || fees < 0) {
+            throw new RuntimeException("Les frais ne peuvent pas être négatifs.");
+        }
+
         Double balance = calculerBalance(fromAddress);
         double totalNeeded = montant + (fees != null ? fees : 0.0);
         if (balance < totalNeeded) {
