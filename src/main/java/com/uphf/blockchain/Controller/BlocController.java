@@ -106,6 +106,32 @@ public class BlocController {
         return ResponseEntity.ok(Map.of("message", "Blockchain réinitialisée avec succès"));
     }
 
+    /**
+     * POST /api/bloc/blockchain/save — Sauvegarde la blockchain localement
+     */
+    @PostMapping("/blockchain/save")
+    public ResponseEntity<?> saveBlockchain() {
+        try {
+            blocService.sauvegarderBlockchain();
+            return ResponseEntity.ok(Map.of("message", "Blockchain et Mempool sauvegardés avec succès."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/bloc/blockchain/load — Charge la blockchain depuis la sauvegarde locale
+     */
+    @PostMapping("/blockchain/load")
+    public ResponseEntity<?> loadBlockchain() {
+        try {
+            blocService.chargerBlockchain();
+            return ResponseEntity.ok(Map.of("message", "Blockchain chargée avec succès."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/3")
     public void afficher3() {
         blocService.test3();

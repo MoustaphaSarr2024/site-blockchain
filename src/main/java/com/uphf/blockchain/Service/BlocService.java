@@ -1,8 +1,12 @@
 package com.uphf.blockchain.Service;
 
 import com.uphf.blockchain.Entity.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -221,6 +225,35 @@ public class BlocService {
     public void resetBlockchain() {
         blockchain.clear();
         mempool.clear(); // Reset mempool as well for a clean state
+    }
+
+    // ==================== PERSISTANCE ====================
+
+    /**
+     * Sauvegarder la blockchain dans un fichier JSON local
+     */
+    public void sauvegarderBlockchain() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule()); // Support pour LocalDate
+        File file = new File("blockchain_backup.json");
+        mapper.writeValue(file, blockchain);
+    }
+
+    /**
+     * Charger la blockchain à partir d'un fichier JSON local
+     */
+    public void chargerBlockchain() throws Exception {
+        File file = new File("blockchain_backup.json");
+        if (!file.exists()) {
+            throw new RuntimeException("Fichier 'blockchain_backup.json' introuvable à la racine du projet.");
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        List<Bloc> blocsCharges = mapper.readValue(file, new TypeReference<List<Bloc>>(){});
+        
+        blockchain.clear();
+        blockchain.addAll(blocsCharges);
+        mempool.clear(); // Nettoyer le mempool au chargement pour éviter les conflits
     }
 
     // ==================== AFFICHAGE ====================

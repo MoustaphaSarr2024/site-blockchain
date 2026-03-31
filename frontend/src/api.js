@@ -17,6 +17,8 @@ export const apiBloc = {
   // Blockchain complète
   getBlockchain: () => api.get("/bloc/blockchain"),
   resetBlockchain: () => api.delete("/bloc/blockchain"),
+  saveBlockchain: () => api.post("/bloc/blockchain/save"),
+  loadBlockchain: () => api.post("/bloc/blockchain/load"),
   // Mempool
   getMempool: () => api.get("/bloc/mempool"),
   deleteFromMempool: (index) => api.delete(`/bloc/mempool/${index}`),

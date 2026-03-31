@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Server, RefreshCw, Copy, Check, Search, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { Server, RefreshCw, Copy, Check, Search, ChevronDown, ChevronRight, Trash2, Save, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiBloc } from "../api";
 
@@ -197,6 +197,52 @@ export default function InternalsPage() {
           ))}
         </div>
       )}
+
+      {/* Persistence Zone */}
+      <div style={{ marginTop: "2rem", paddingTop: "2rem", borderTop: "1px solid var(--glass-border)", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+        <p style={{ color: "var(--text-primary)", fontSize: "0.9rem", fontWeight: 700, textAlign: "center" }}>
+          Persistance des données
+        </p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", textAlign: "center", maxWidth: "400px", lineHeight: "1.5" }}>
+          Vous pouvez sauvegarder l'état actuel de la blockchain dans un fichier local sur le serveur, et le recharger plus tard.
+        </p>
+        <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+          <button 
+            onClick={async () => {
+               try {
+                 await apiBloc.saveBlockchain();
+                 alert("Blockchain sauvegardée avec succès sur le serveur !");
+               } catch (err) {
+                 alert("Erreur lors de la sauvegarde : " + (err.response?.data?.error || err.message));
+               }
+            }}
+            className="btn-secondary"
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.6rem 1.2rem" }}
+          >
+            <Save size={16} />
+            Sauvegarder
+          </button>
+
+          <button 
+            onClick={async () => {
+              if(window.confirm("Ceci remplacera la blockchain actuelle par la dernière sauvegarde. Continuer ?")) {
+                 try {
+                   await apiBloc.loadBlockchain();
+                   alert("Blockchain chargée avec succès depuis le serveur !");
+                   fetchChain();
+                 } catch (err) {
+                   alert("Erreur lors du chargement (le fichier n'existe peut-être pas) : " + (err.response?.data?.error || err.message));
+                 }
+              }
+            }}
+            className="btn-primary"
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.6rem 1.2rem" }}
+          >
+            <Download size={16} />
+            Charger
+          </button>
+        </div>
+      </div>
 
       {/* Danger Zone: Reset Button at the bottom */}
       <div style={{ marginTop: "3rem", paddingTop: "2rem", borderTop: "1px solid var(--glass-border)", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
