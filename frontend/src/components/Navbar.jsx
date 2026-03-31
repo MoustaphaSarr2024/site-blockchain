@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Hash, Users, Layers, Pickaxe,
-  Database, Coins, Network, Server, Activity, Wallet2
+  Database, Coins, Network, Server, Activity, Wallet2, Share2
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { to: "/balances",  icon: Coins,           label: "Balances",  color: "#f59e0b" },
   { to: "/consensus", icon: Network,         label: "Consensus", color: "#f97316" },
   { to: "/internals",  icon: Server,    label: "Internals", color: "#64748b" },
+  { to: "/merkletree", icon: Share2,    label: "Merkle",    color: "#10b981" },
   { to: "/walletuser", icon: Wallet2,   label: "Wallets",   color: "#a855f7" },
 ];
 

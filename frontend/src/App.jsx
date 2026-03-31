@@ -14,6 +14,7 @@ import BalancesPage     from "./pages/BalancesPage";
 import ConsensusPage    from "./pages/ConsensusPage";
 import InternalsPage    from "./pages/InternalsPage";
 import WalletUserPage   from "./pages/WalletUserPage";
+import MerkleTreePage   from "./pages/MerkleTreePage";
 
 const App = () => {
   return (
@@ -41,6 +42,7 @@ const App = () => {
             <Route path="/consensus" element={<ConsensusPage />} />
             <Route path="/internals"  element={<InternalsPage />} />
             <Route path="/walletuser" element={<WalletUserPage />} />
+            <Route path="/merkletree" element={<MerkleTreePage />} />
             {/* Legacy routes */}
             <Route path="/wallet"    element={<WalletPage />} />
           </Routes>
