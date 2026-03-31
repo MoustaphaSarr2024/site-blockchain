@@ -13,6 +13,7 @@ import WalletPage       from "./pages/WalletPage";        // kept as /wallet fal
 import BalancesPage     from "./pages/BalancesPage";
 import ConsensusPage    from "./pages/ConsensusPage";
 import InternalsPage    from "./pages/InternalsPage";
+import WalletUserPage   from "./pages/WalletUserPage";
 
 const App = () => {
   return (
@@ -38,7 +39,8 @@ const App = () => {
             <Route path="/mining"    element={<MiningPage />} />
             <Route path="/balances"  element={<BalancesPage />} />
             <Route path="/consensus" element={<ConsensusPage />} />
-            <Route path="/internals" element={<InternalsPage />} />
+            <Route path="/internals"  element={<InternalsPage />} />
+            <Route path="/walletuser" element={<WalletUserPage />} />
             {/* Legacy routes */}
             <Route path="/wallet"    element={<WalletPage />} />
           </Routes>
