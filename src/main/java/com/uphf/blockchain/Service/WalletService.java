@@ -262,10 +262,26 @@ public class WalletService {
         }
 
         Double balance = calculerBalance(fromAddress);
+
+        // ── Déduire les transactions déjà en attente dans le mempool (anti double-dépense) ──
+        double pendingDebit = 0.0;
+        for (Transaction pending : blocService.getMempool()) {
+            String expediteur = pending.getExpediteur();
+            if (fromAddress.equals(expediteur)) {
+                pendingDebit += (pending.getQuantite() != null ? pending.getQuantite() : 0.0)
+                              + (pending.getFees()     != null ? pending.getFees()     : 0.0);
+            }
+        }
+        double balanceDisponible = balance - pendingDebit;
+
         double totalNeeded = montant + (fees != null ? fees : 0.0);
-        if (balance < totalNeeded) {
-            throw new RuntimeException("Solde insuffisant. Solde actuel: " + String.format("%.4f", balance)
-                    + " BTC, nécessaire: " + String.format("%.4f", totalNeeded) + " BTC");
+        if (balanceDisponible < totalNeeded) {
+            throw new RuntimeException(
+                "Solde insuffisant. Solde confirmé : " + String.format("%.4f", balance)
+                + " BTC, dont " + String.format("%.4f", pendingDebit)
+                + " BTC déjà réservés dans le mempool."
+                + " Disponible : " + String.format("%.4f", balanceDisponible)
+                + " BTC, nécessaire : " + String.format("%.4f", totalNeeded) + " BTC.");
         }
 
         // Créer la transaction avec fees
