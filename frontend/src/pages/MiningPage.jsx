@@ -276,7 +276,7 @@ export default function MiningPage() {
                         </div>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "var(--text-primary)" }}>{parseFloat(tx.amount ?? tx.montant ?? 0).toFixed(4)} BTC</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "var(--text-primary)" }}>{parseFloat(tx.Quantite ?? tx.quantite ?? tx.amount ?? tx.montant ?? 0).toFixed(4)} BTC</div>
                         <div style={{ fontSize: "0.62rem", color: txFees >= 0.01 ? "var(--accent-green)" : "var(--text-muted)" }}>frais: {parseFloat(txFees).toFixed(4)}</div>
                       </div>
                     </div>
