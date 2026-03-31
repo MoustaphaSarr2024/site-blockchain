@@ -51,6 +51,14 @@ export const apiWallet = {
   // Envoyer des fonds (ajoute au mempool)
   send: (address, destinataire, montant, fees = 0) =>
     api.post(`/wallet/${address}/send`, { destinataire, montant, fees }),
+
+  // Signer un message libre
+  signMessage: (address, message) =>
+    api.post(`/wallet/${address}/signMessage`, { message }),
+
+  // Vérifier la signature d'un message libre
+  verifyMessage: (publicKey, message, signature) =>
+    api.post(`/wallet/verifyMessage`, { publicKey, message, signature }),
 };
 // ==================== AUTH API ====================
 export const apiAuth = {

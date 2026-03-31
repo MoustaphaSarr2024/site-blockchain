@@ -153,4 +153,45 @@ public class WalletController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * POST /api/wallet/{address}/signMessage — Signer un message libre
+     */
+    @PostMapping("/{address}/signMessage")
+    public ResponseEntity<?> signerMessage(
+            @PathVariable String address,
+            @RequestBody Map<String, String> body) {
+        try {
+            String message = body.get("message");
+            if (message == null || message.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Le message ne peut pas être vide"));
+            }
+            String signature = walletService.signerMessage(address, message);
+            return ResponseEntity.ok(Map.of(
+                    "message", message,
+                    "address", address,
+                    "signature", signature));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/wallet/verifyMessage — Vérifier la signature d'un message libre
+     */
+    @PostMapping("/verifyMessage")
+    public ResponseEntity<?> verifierMessage(@RequestBody Map<String, String> body) {
+        try {
+            String publicKey = body.get("publicKey");
+            String message   = body.get("message");
+            String signature = body.get("signature");
+            if (publicKey == null || message == null || signature == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Champs manquants : publicKey, message, signature"));
+            }
+            boolean valide = walletService.verifierMessage(publicKey, message, signature);
+            return ResponseEntity.ok(Map.of("valide", valide, "message", message));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

@@ -192,6 +192,51 @@ public class WalletService {
     }
 
     /**
+     * Signer un message libre avec la clé privée d'un wallet
+     */
+    public String signerMessage(String address, String message) {
+        Wallet wallet = wallets.get(address);
+        if (wallet == null) {
+            throw new RuntimeException("Wallet introuvable pour l'adresse: " + address);
+        }
+        try {
+            byte[] privateKeyBytes = hexToBytes(wallet.getPrivateKey());
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+            PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+
+            Signature signature = Signature.getInstance("SHA256withECDSA");
+            signature.initSign(privateKey);
+            signature.update(message.getBytes(StandardCharsets.UTF_8));
+            byte[] signatureBytes = signature.sign();
+
+            return bytesToHex(signatureBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la signature du message: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Vérifier la signature d'un message libre
+     */
+    public boolean verifierMessage(String publicKeyHex, String message, String signatureHex) {
+        try {
+            byte[] publicKeyBytes = hexToBytes(publicKeyHex);
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
+            PublicKey publicKey = keyFactory.generatePublic(keySpec);
+
+            Signature signature = Signature.getInstance("SHA256withECDSA");
+            signature.initVerify(publicKey);
+            signature.update(message.getBytes(StandardCharsets.UTF_8));
+
+            return signature.verify(hexToBytes(signatureHex));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Envoyer des fonds d'un wallet à une adresse.
      * La transaction est ajoutée au MEMPOOL (pas confirmée directement).
      * Elle sera confirmée lors du prochain minage.
