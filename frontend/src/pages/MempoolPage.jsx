@@ -60,8 +60,8 @@ export default function MempoolPage() {
         apiBloc.getMempool(),
         apiWallet.getAll(),
       ]);
-      // Sort by fees descending
-      const sorted = (mRes.data || []).sort((a, b) => (b.fees ?? b.frais ?? 0) - (a.fees ?? a.frais ?? 0));
+      // Sort by fees descending — Fees field may be capitalized (Java PascalCase) or lowercased (Jackson getter)
+      const sorted = (mRes.data || []).sort((a, b) => (b.Fees ?? b.fees ?? b.frais ?? 0) - (a.Fees ?? a.fees ?? a.frais ?? 0));
       setMempool(sorted);
       setAccounts(wRes.data || []);
     } catch (e) {
@@ -284,8 +284,10 @@ export default function MempoolPage() {
                   <AnimatePresence>
                     {mempool.map((tx, idx) => {
                       const isSelected = selected.has(idx);
-                      const txFees = tx.fees ?? tx.frais ?? 0;
-                      const txAmount = tx.amount ?? tx.montant ?? 0;
+                      const txFees   = tx.Fees   ?? tx.fees   ?? tx.frais   ?? 0;
+                      const txAmount = tx.Quantite ?? tx.quantite ?? tx.amount ?? tx.montant ?? 0;
+                      const txFrom   = tx.Expediteur || tx.expediteur || tx.sender || tx.from || "";
+                      const txTo     = tx.Destinataire || tx.destinataire || tx.recipient || tx.to || "";
                       return (
                         <motion.tr
                           key={tx.id || tx.txId || idx}
@@ -313,11 +315,11 @@ export default function MempoolPage() {
                           </td>
                           {/* Sender */}
                           <td style={{ padding: "0.75rem 1rem" }}>
-                            <div className="mono" style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>{truncate(tx.expediteur || tx.sender || tx.from, 8)}</div>
+                            <div className="mono" style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>{truncate(txFrom, 8)}</div>
                           </td>
                           {/* Recipient */}
                           <td style={{ padding: "0.75rem 1rem" }}>
-                            <div className="mono" style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>{truncate(tx.destinataire || tx.recipient || tx.to, 8)}</div>
+                            <div className="mono" style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>{truncate(txTo, 8)}</div>
                           </td>
                           {/* Amount */}
                           <td style={{ padding: "0.75rem 1rem" }}>
