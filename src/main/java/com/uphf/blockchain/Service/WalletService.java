@@ -1,6 +1,8 @@
 package com.uphf.blockchain.Service;
 
 import com.uphf.blockchain.Entity.Transaction;
+import com.uphf.blockchain.Entity.TxInput;
+import com.uphf.blockchain.Entity.TxOutput;
 import com.uphf.blockchain.Entity.Wallet;
 import com.uphf.blockchain.Entity.WalletDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -284,13 +286,43 @@ public class WalletService {
                 + " BTC, nécessaire : " + String.format("%.4f", totalNeeded) + " BTC.");
         }
 
-        // Créer la transaction avec fees
-        Transaction transaction = new Transaction(fromAddress, toAddress, montant, fees != null ? fees : 0.0);
+        // ── Créer la transaction ───────────────────────────────────────────
+        double feesVal = fees != null ? fees : 0.0;
+        Transaction transaction = new Transaction(fromAddress, toAddress, montant, feesVal);
 
-        // Signer la transaction
+        // ── Générer le txid (SHA-256 des données) ─────────────────────────
+        transaction.generateTxid();
+
+        // ── Construire les inputs ─────────────────────────────────────────
+        // Input simplifié : référence au "solde disponible" de l'expéditeur
+        // (dans un vrai réseau Bitcoin, on référencerait des UTXOs spécifiques)
+        TxInput input = new TxInput(
+            "prev:" + fromAddress.substring(0, Math.min(16, fromAddress.length())),
+            0,
+            null, // sera rempli après la signature
+            montant + feesVal
+        );
+        transaction.getInputs().add(input);
+
+        // ── Construire les outputs ────────────────────────────────────────
+        // Output 0 : paiement au destinataire
+        transaction.getOutputs().add(new TxOutput(0, montant,  toAddress,   "PAYMENT"));
+        // Output 1 : monnaie rendue à l'expéditeur (balance - montant - fees)
+        double change = balanceDisponible - montant - feesVal;
+        if (change > 0.000001) {
+            transaction.getOutputs().add(new TxOutput(1, change, fromAddress, "CHANGE"));
+        }
+ 
+        // ── Signer la transaction ─────────────────────────────────────────
         signerTransaction(fromAddress, transaction);
 
-        // Ajouter au mempool (sera confirmée au prochain minage)
+        
+        // Mettre à jour le scriptSig de l'input avec la signature
+        if (transaction.getSignature() != null && !transaction.getInputs().isEmpty()) {
+            transaction.getInputs().get(0).setScriptSig(transaction.getSignature());
+        }
+
+        // ── Ajouter au mempool ────────────────────────────────────────────
         blocService.ajouterAuMempool(transaction);
 
         return transaction;
