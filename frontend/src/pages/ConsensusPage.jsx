@@ -58,6 +58,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default function ConsensusPage() {
   const [block, setBlock]       = useState(null);
+  const [pendingBlocks, setPendingBlocks] = useState([]);
   const [loading, setLoading]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [running, setRunning]   = useState(false);
@@ -71,23 +72,38 @@ export default function ConsensusPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ── Load pending block from sessionStorage ─────────────────────────────
-  const loadPendingBlock = useCallback(() => {
+  // ── Load pending blocks list from sessionStorage ────────────────────────
+  const loadPendingBlocks = useCallback(() => {
     setLoading(true);
     setDone(false);
     setNodeResults({});
     setBlock(null);
     try {
+      // Try the array first
+      const listRaw = sessionStorage.getItem("pendingBlocks");
+      if (listRaw) {
+        const list = JSON.parse(listRaw);
+        setPendingBlocks(list);
+        if (list.length > 0) {
+          setBlock(list[0]); // auto-select the most recent
+          showToast(`${list.length} bloc(s) disponible(s) — le plus récent est sélectionné.`);
+        } else {
+          showToast("Aucun bloc en attente. Allez miner d'abord !", "error");
+        }
+        return;
+      }
+      // Fallback: single block
       const stored = sessionStorage.getItem("pendingBlock");
       if (!stored) {
         showToast("Aucun bloc en attente. Allez miner d'abord !", "error");
         return;
       }
       const parsed = JSON.parse(stored);
+      setPendingBlocks([parsed]);
       setBlock(parsed);
-      showToast("Bloc candidat chargé ! Prêt pour le consensus.");
+      showToast("Bloc candidat chargé !");
     } catch (e) {
-      showToast("Erreur lors de la lecture du bloc candidat", "error");
+      showToast("Erreur lors de la lecture des blocs candidats", "error");
     } finally {
       setLoading(false);
     }
@@ -200,7 +216,19 @@ export default function ConsensusPage() {
       const minerAddr = block.minerAddr || block.miner || null;
       await apiBloc.miner(minerAddr);
       showToast("✅ Bloc officiellement ajouté à la blockchain (backend) !");
-      sessionStorage.removeItem("pendingBlock"); // Clear pending block
+      // Remove this block from the pending list
+      const updated = pendingBlocks.filter(b => b.id !== block.id);
+      setPendingBlocks(updated);
+      sessionStorage.setItem("pendingBlocks", JSON.stringify(updated));
+      if (updated.length > 0) {
+        sessionStorage.setItem("pendingBlock", JSON.stringify(updated[0]));
+      } else {
+        sessionStorage.removeItem("pendingBlock");
+        sessionStorage.removeItem("pendingBlocks");
+      }
+      setBlock(updated[0] || null);
+      setDone(false);
+      setNodeResults({});
     } catch (err) {
       showToast(err.response?.data?.error || "Erreur lors de la soumission du bloc", "error");
     } finally {
@@ -251,11 +279,53 @@ export default function ConsensusPage() {
           {/* Load block */}
           <div className="glass-card" style={{ padding: "1.5rem" }}>
             <h2 style={{ fontWeight: 800, color: "var(--text-primary)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-              📦 Bloc à valider
+              📦 Blocs à valider
             </h2>
-            <button onClick={loadPendingBlock} disabled={loading || running} className="btn-primary" style={{ width: "100%", marginBottom: "0.85rem" }}>
-              {loading ? <><Cpu size={14} /> Chargement…</> : <><RefreshCw size={14} /> Charger le bloc candidat</>}
+            <button onClick={loadPendingBlocks} disabled={loading || running} className="btn-primary" style={{ width: "100%", marginBottom: "0.85rem" }}>
+              {loading ? <><Cpu size={14} /> Chargement…</> : <><RefreshCw size={14} /> Charger les blocs candidats</>}
             </button>
+
+            {/* Block list selector */}
+            {pendingBlocks.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.85rem" }}>
+                <span className="input-label">{pendingBlocks.length} bloc(s) miné(s) — cliquer pour sélectionner</span>
+                {pendingBlocks.map((b, i) => {
+                  const isSelected = block?.id === b.id;
+                  return (
+                    <div
+                      key={b.id || i}
+                      onClick={() => { setBlock(b); setDone(false); setNodeResults({}); }}
+                      style={{
+                        padding: "0.65rem 0.9rem",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        border: `1px solid ${isSelected ? "rgba(99,102,241,0.6)" : "var(--glass-border)"}`,
+                        background: isSelected ? "rgba(99,102,241,0.1)" : "rgba(10,14,26,0.3)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          {isSelected && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent-blue)", display: "inline-block" }} />}
+                          <span style={{ fontWeight: 800, fontSize: "0.78rem", color: isSelected ? "var(--accent-blue-light)" : "var(--text-primary)" }}>
+                            Bloc #{b.index}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>
+                          {new Date(b.timestamp).toLocaleTimeString("fr-FR")}
+                        </span>
+                      </div>
+                      <div className="mono" style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {b.hash?.slice(0, 24)}…
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                        {b.difficulty} zéro(s) · {b.txCount ?? 0} tx · nonce {b.nonce}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {displayBlock ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>

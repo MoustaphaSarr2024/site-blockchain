@@ -120,8 +120,9 @@ export default function MiningPage() {
           const foundResult = { nonce: n, hash: h, elapsed: t, hashRate: Math.round(n / t) };
           setResult(foundResult);
 
-          // Save candidate block to sessionStorage for Consensus page
+          // Save candidate block to sessionStorage — append to list
           const candidateBlock = {
+            id:         Date.now(),
             index:      blockIndex,
             prevHash,
             merkleRoot,
@@ -132,9 +133,14 @@ export default function MiningPage() {
             txCount:    selectedTx.size,
             reward:     REWARD,
             timestamp:  new Date().toISOString(),
-            // Store selected transactions
             transactions: mempool.filter((_, i) => selectedTx.has(i)),
           };
+          // Keep list of all pending blocks (max 10)
+          const existingRaw = sessionStorage.getItem("pendingBlocks");
+          const existing = existingRaw ? JSON.parse(existingRaw) : [];
+          const updated = [candidateBlock, ...existing].slice(0, 10);
+          sessionStorage.setItem("pendingBlocks", JSON.stringify(updated));
+          // Also keep single key for backward compat
           sessionStorage.setItem("pendingBlock", JSON.stringify(candidateBlock));
           showToast("⛏️ Nonce trouvé ! Allez dans l'onglet Consensus pour valider le bloc.");
           return;
