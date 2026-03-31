@@ -20,30 +20,93 @@ const PHASES = [
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [wallets, setWallets] = useState([]);
-  const [mempool, setMempool] = useState([]);
-  const [stats, setStats] = useState({ blocks: 0, supply: 0, difficulty: 4, avgTime: 0 });
-  const [loading, setLoading] = useState(true);
+  const [wallets, setWallets]   = useState([]);
+  const [mempool, setMempool]   = useState([]);
+  const [stats, setStats]       = useState({
+    blockCount: 0,
+    difficulty: "—",
+    avgTime: "—",
+    totalSupply: "0.0000",
+    pendingTx: 0,
+    accounts: 0,
+  });
+  const [loading, setLoading]   = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [wRes, mRes] = await Promise.all([
+      const [wRes, mRes, bRes] = await Promise.all([
         apiWallet.getAll(),
         apiBloc.getMempool(),
+        apiBloc.getBlockchain(),
       ]);
-      setWallets(wRes.data);
-      setMempool(mRes.data);
 
-      // Derive simple stats
-      const supply = wRes.data.reduce((s, w) => s + (w.balance || 0), 0);
-      setStats(prev => ({
-        ...prev,
-        accounts: wRes.data.length,
-        pendingTx: mRes.data.length,
-        totalSupply: supply.toFixed(4),
-      }));
+      const walletList   = wRes.data  || [];
+      const mempoolList  = mRes.data  || [];
+      const blockchain   = bRes.data  || [];
+
+      setWallets(walletList);
+      setMempool(mempoolList);
+
+      // ── Nombre total de blocs ──────────────────────────
+      const blockCount = blockchain.length;
+
+      // ── Difficulté actuelle (du dernier bloc) ──────────
+      let difficulty = "—";
+      if (blockCount > 0) {
+        const lastBloc = blockchain[blockCount - 1];
+        const hdr = lastBloc.blockHeader || lastBloc.BlockHeader || lastBloc.header || {};
+        const target = hdr.Target ?? hdr.target ?? hdr.difficulty ?? null;
+        if (target !== null) difficulty = `${target} zéro${target > 1 ? "s" : ""}`;
+      }
+
+      // ── Temps moyen de création des blocs ─────────────
+      let avgTime = "—";
+      if (blockCount >= 2) {
+        const timestamps = blockchain.map(b => {
+          const hdr = b.blockHeader || b.BlockHeader || b.header || {};
+          const ts  = hdr.TimeStamp || hdr.timeStamp || hdr.timestamp || null;
+          return ts ? new Date(ts).getTime() : null;
+        }).filter(Boolean);
+
+        if (timestamps.length >= 2) {
+          let totalMs = 0;
+          for (let i = 1; i < timestamps.length; i++) {
+            totalMs += Math.abs(timestamps[i] - timestamps[i - 1]);
+          }
+          const avgMs  = totalMs / (timestamps.length - 1);
+          const avgSec = avgMs / 1000;
+          if (avgSec < 60)        avgTime = `${avgSec.toFixed(0)}s`;
+          else if (avgSec < 3600) avgTime = `${(avgSec / 60).toFixed(1)} min`;
+          else                    avgTime = `${(avgSec / 3600).toFixed(1)} h`;
+        }
+      } else if (blockCount === 1) {
+        avgTime = "1 bloc";
+      }
+
+      // ── Total Supply = somme des récompenses coinbase ──
+      let totalSupply = 0;
+      blockchain.forEach(b => {
+        const body     = b.blockBody || b.BlockBody || b.body || {};
+        const coinbase = body.CoinBase || body.coinBase || body.coinbase || null;
+        if (coinbase) {
+          const reward = coinbase.Recompense ?? coinbase.recompense ?? 0;
+          totalSupply += reward;
+        }
+      });
+
+      setStats({
+        blockCount,
+        difficulty,
+        avgTime,
+        totalSupply: totalSupply.toFixed(4),
+        pendingTx:   mempoolList.length,
+        accounts:    walletList.length,
+      });
+
+      setLastUpdate(new Date().toLocaleTimeString("fr-FR"));
     } catch (e) {
-      console.error(e);
+      console.error("Dashboard fetch error:", e);
     } finally {
       setLoading(false);
     }
@@ -56,10 +119,39 @@ export default function DashboardPage() {
   }, [fetchAll]);
 
   const statCards = [
-    { label: "Comptes créés", value: wallets.length, icon: <Users size={20} />, color: "#6366f1" },
-    { label: "Tx en attente", value: mempool.length, icon: <Zap size={20} />, color: "#f59e0b" },
-    { label: "Supply totale", value: `${stats.totalSupply || "0.0000"} BTC`, icon: <Coins size={20} />, color: "#10b981" },
-    { label: "Difficulté PoW", value: `${stats.difficulty} zéros`, icon: <Shield size={20} />, color: "#a855f7" },
+    {
+      label: "Nombre de blocs",
+      value: loading ? "…" : stats.blockCount,
+      icon: <Database size={20} />,
+      color: "#6366f1",
+      sub: "blocs minés",
+    },
+    {
+      label: "Difficulté actuelle",
+      value: loading ? "…" : stats.difficulty,
+      icon: <Shield size={20} />,
+      color: "#a855f7",
+      sub: "Proof-of-Work target",
+    },
+    {
+      label: "Temps moyen / bloc",
+      value: loading ? "…" : stats.avgTime,
+      icon: <Clock size={20} />,
+      color: "#22d3ee",
+      sub: "entre deux blocs",
+    },
+    {
+      label: "Total Supply",
+      value: loading ? "…" : `${stats.totalSupply} BTC`,
+      icon: <Coins size={20} />,
+      color: "#10b981",
+      sub: "monnaie créée (coinbase)",
+    },
+  ];
+
+  const infoCards = [
+    { label: "Comptes", value: loading ? "…" : stats.accounts, icon: <Users size={16} />, color: "#818cf8" },
+    { label: "Tx en attente", value: loading ? "…" : stats.pendingTx, icon: <Zap size={16} />, color: "#f59e0b" },
   ];
 
   return (
@@ -73,7 +165,6 @@ export default function DashboardPage() {
           overflow: "hidden",
         }}
       >
-        {/* Background grid */}
         <div
           style={{
             position: "absolute", inset: 0, zIndex: 0,
@@ -133,33 +224,67 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
-        {statCards.map(({ label, value, icon, color }, i) => (
+      {/* ── Header row ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h2 style={{ fontWeight: 800, color: "var(--text-secondary)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          📊 Indicateurs blockchain
+        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          {lastUpdate && (
+            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+              Mis à jour : {lastUpdate}
+            </span>
+          )}
+          <button onClick={fetchAll} className="btn-secondary" style={{ padding: "0.45rem 1rem", fontSize: "0.75rem" }}>
+            <RefreshCw size={13} /> Actualiser
+          </button>
+        </div>
+      </div>
+
+      {/* ── 4 Main Stats ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1rem" }}>
+        {statCards.map(({ label, value, icon, color, sub }, i) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 + 0.2 }}
             className="glass-card"
-            style={{ padding: "1.25rem 1.5rem" }}
+            style={{ padding: "1.25rem 1.5rem", position: "relative", overflow: "hidden" }}
           >
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: color, borderRadius: "var(--radius-lg) var(--radius-lg) 0 0" }} />
             <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", marginBottom: "0.75rem", color }}>
               {icon}
-              <span className="input-label" style={{ margin: 0 }}>{label}</span>
+              <span className="input-label" style={{ margin: 0, color: "var(--text-muted)" }}>{label}</span>
             </div>
-            <div style={{ fontWeight: 900, fontSize: "1.5rem", color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              {loading ? "…" : value}
+            <div style={{ fontWeight: 900, fontSize: "1.5rem", color: "var(--text-primary)", letterSpacing: "-0.02em", marginBottom: "0.25rem" }}>
+              {value}
             </div>
+            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{sub}</div>
           </motion.div>
         ))}
       </div>
 
-      {/* ── Refresh ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
-        <button onClick={fetchAll} className="btn-secondary" style={{ padding: "0.45rem 1rem", fontSize: "0.75rem" }}>
-          <RefreshCw size={13} /> Actualiser
-        </button>
+      {/* ── 2 secondary stats ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
+        {infoCards.map(({ label, value, icon, color }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 + 0.4 }}
+            className="glass-card"
+            style={{ padding: "1rem 1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}
+          >
+            <div style={{ width: 36, height: 36, borderRadius: "var(--radius-sm)", background: `${color}18`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", color }}>
+              {icon}
+            </div>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{label}</div>
+              <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--text-primary)" }}>{value}</div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       {/* ── Navigation cards ── */}
