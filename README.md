@@ -173,7 +173,7 @@ npm run dev
 
 <div align="center">
 
-### Projet pédagogique — UPHF
+### Projet pédagogique — UPHF-INSA Hauts-de-France 2025-2026
 
 Développé à des fins éducatives pour comprendre les mécanismes fondamentaux de la technologie Blockchain.
 
