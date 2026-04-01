@@ -121,10 +121,12 @@ cd site-blockchain
 ### 2- Démarrer le Backend (Spring Boot)
 
 ```bash
-# Depuis la racine du projet
+# Depuis le dossier backend/
+cd backend
 ./mvnw spring-boot:run
 
 # Windows
+cd backend
 mvnw.cmd spring-boot:run
 ```
 
